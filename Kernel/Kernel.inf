@@ -1,0 +1,86 @@
+;
+; Kernel.inf
+;
+
+[Version]
+Signature="$WINDOWS NT$"
+Class=Sample ; TODO: edit Class
+ClassGuid={78A1C341-4539-11d3-B88D-00C04FAD5171} ; TODO: edit ClassGuid
+Provider=%ManufacturerName%
+CatalogFile=Kernel.cat
+DriverVer= ; TODO: set DriverVer in stampinf property pages
+
+[DestinationDirs]
+DefaultDestDir = 12
+Kernel_Device_CoInstaller_CopyFiles = 11
+
+; ================= Class section =====================
+
+[ClassInstall32]
+Addreg=SampleClassReg
+
+[SampleClassReg]
+HKR,,,0,%ClassName%
+HKR,,Icon,,-5
+
+[SourceDisksNames]
+1 = %DiskName%,,,""
+
+[SourceDisksFiles]
+Kernel.sys  = 1,,
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll=1 ; make sure the number matches with SourceDisksNames
+
+;*****************************************
+; Install Section
+;*****************************************
+
+[Manufacturer]
+%ManufacturerName%=Standard,NT$ARCH$
+
+[Standard.NT$ARCH$]
+%Kernel.DeviceDesc%=Kernel_Device, Root\Kernel ; TODO: edit hw-id
+
+[Kernel_Device.NT]
+CopyFiles=Drivers_Dir
+
+[Drivers_Dir]
+Kernel.sys
+
+;-------------- Service installation
+[Kernel_Device.NT.Services]
+AddService = Kernel,%SPSVCINST_ASSOCSERVICE%, Kernel_Service_Inst
+
+; -------------- Kernel driver install sections
+[Kernel_Service_Inst]
+DisplayName    = %Kernel.SVCDESC%
+ServiceType    = 1               ; SERVICE_KERNEL_DRIVER
+StartType      = 3               ; SERVICE_DEMAND_START
+ErrorControl   = 1               ; SERVICE_ERROR_NORMAL
+ServiceBinary  = %12%\Kernel.sys
+
+;
+;--- Kernel_Device Coinstaller installation ------
+;
+
+[Kernel_Device.NT.CoInstallers]
+AddReg=Kernel_Device_CoInstaller_AddReg
+CopyFiles=Kernel_Device_CoInstaller_CopyFiles
+
+[Kernel_Device_CoInstaller_AddReg]
+HKR,,CoInstallers32,0x00010000, "WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll,WdfCoInstaller"
+
+[Kernel_Device_CoInstaller_CopyFiles]
+WdfCoInstaller$KMDFCOINSTALLERVERSION$.dll
+
+[Kernel_Device.NT.Wdf]
+KmdfService =  Kernel, Kernel_wdfsect
+[Kernel_wdfsect]
+KmdfLibraryVersion = $KMDFVERSION$
+
+[Strings]
+SPSVCINST_ASSOCSERVICE= 0x00000002
+ManufacturerName="<Your manufacturer name>" ;TODO: Replace with your manufacturer name
+ClassName="Samples" ; TODO: edit ClassName
+DiskName = "Kernel Installation Disk"
+Kernel.DeviceDesc = "Kernel Device"
+Kernel.SVCDESC = "Kernel Service"
