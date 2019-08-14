@@ -143,21 +143,20 @@ PVOID GetBaseAddress(PCHAR name, PULONG out_size) {
 		return addr;
 	}
 
-	if (!NT_SUCCESS(status = ZwQuerySystemInformation(SystemModuleInformation, modules, size, 0))) {
-		printf("! ZwQuerySystemInformation failed: %p !\n", status);
-		return addr;
-	}
+	if (NT_SUCCESS(status = ZwQuerySystemInformation(SystemModuleInformation, modules, size, 0))) {
+		for (ULONG i = 0; i < modules->NumberOfModules; ++i) {
+			SYSTEM_MODULE m = modules->Modules[i];
 
-	for (ULONG i = 0; i < modules->NumberOfModules; ++i) {
-		SYSTEM_MODULE m = modules->Modules[i];
-
-		if (strstr(LowerStr((PCHAR)m.FullPathName), name)) {
-			addr = m.ImageBase;
-			if (out_size) {
-				*out_size = m.ImageSize;
+			if (strstr(LowerStr((PCHAR)m.FullPathName), name)) {
+				addr = m.ImageBase;
+				if (out_size) {
+					*out_size = m.ImageSize;
+				}
+				break;
 			}
-			break;
 		}
+	} else {	
+		printf("! ZwQuerySystemInformation failed: %p !\n", status);	
 	}
 
 	ExFreePool(modules);

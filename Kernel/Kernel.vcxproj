@@ -157,10 +157,12 @@
     <FilesToPackage Include="$(TargetPath)" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="hook.c" />
     <ClCompile Include="main.c" />
     <ClCompile Include="util.c" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="hook.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="util.h" />
   </ItemGroup>

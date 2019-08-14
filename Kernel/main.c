@@ -212,7 +212,7 @@ VOID SpoofRaidUnits(RU_REGISTER_INTERFACES RaidUnitRegisterInterfaces, BYTE Raid
 }
 
 VOID SpoofDisks() {
-	SwapControl(RTL_CONSTANT_STRING(L"\\Driver\\partmgr"), PartControl, PartControlOriginal);
+	IndirectHookControl(L"\\Driver\\partmgr", PartControl, PartControlOriginal);
 
 	UNICODE_STRING disk_str = RTL_CONSTANT_STRING(L"\\Driver\\Disk");
 	PDRIVER_OBJECT disk_object = 0;
@@ -223,7 +223,7 @@ VOID SpoofDisks() {
 		return;
 	}
 
-	AppendSwap(disk_str, &disk_object->MajorFunction[IRP_MJ_DEVICE_CONTROL], DiskControl, DiskControlOriginal);
+	IndirectHook(disk_object, (PVOID)DiskControl, (PVOID)disk_object->MajorFunction[IRP_MJ_DEVICE_CONTROL], (PVOID *)&DiskControlOriginal);
 
 	DISK_FAIL_PREDICTION DiskEnableDisableFailurePrediction = (DISK_FAIL_PREDICTION)FindPatternImage(disk_object->DriverStart, "\x48\x89\x00\x24\x10\x48\x89\x74\x24\x18\x57\x48\x81\xEC\x90\x00", "xx?xxxxxxxxxxxxx");
 	if (DiskEnableDisableFailurePrediction) {
@@ -379,7 +379,7 @@ NTSTATUS MountControl(PDEVICE_OBJECT device, PIRP irp) {
 
 // Volume serial is spoofed from usermode
 void SpoofVolumes() {
-	SwapControl(RTL_CONSTANT_STRING(L"\\Driver\\mountmgr"), MountControl, MountControlOriginal);
+	IndirectHookControl(L"\\Driver\\mountmgr", MountControl, MountControlOriginal);
 }
 
 /**** NIC ****/
@@ -452,7 +452,7 @@ NTSTATUS NsiControl(PDEVICE_OBJECT device, PIRP irp) {
 }
 
 VOID SpoofNIC() {
-	SwapControl(RTL_CONSTANT_STRING(L"\\Driver\\nsiproxy"), NsiControl, NsiControlOriginal);
+	IndirectHookControl(L"\\Driver\\nsiproxy", NsiControl, NsiControlOriginal);
 
 	PVOID base = GetBaseAddress("ndis.sys", 0);
 	if (!base) {
@@ -500,12 +500,12 @@ VOID SpoofNIC() {
 								}
 
 								if (exists) {
-									printf("%wZ already swapped\n", &driver->DriverName);
+									printf("%wZ already handled\n", &driver->DriverName);
 								} else {
 									PNIC_DRIVER nic = &NICs.Drivers[NICs.Length];
 									nic->DriverObject = driver;
 
-									AppendSwap(driver->DriverName, &driver->MajorFunction[IRP_MJ_DEVICE_CONTROL], NICControl, nic->Original);
+									SwapHook(&driver->DriverName, &driver->MajorFunction[IRP_MJ_DEVICE_CONTROL], (PVOID)NICControl, (PVOID *)&nic->Original);
 
 									++NICs.Length;
 								}
@@ -598,21 +598,14 @@ NTSTATUS GpuControl(PDEVICE_OBJECT device, PIRP irp) {
 }
 
 VOID SpoofGPU() {
-	SwapControl(RTL_CONSTANT_STRING(L"\\Driver\\nvlddmkm"), GpuControl, GpuControlOriginal);
+	IndirectHookControl(L"\\Driver\\nvlddmkm", GpuControl, GpuControlOriginal);
 }
 
 VOID DriverUnload(PDRIVER_OBJECT driver) {
 	UNREFERENCED_PARAMETER(driver);
+
 	printf("-- unloading\n");
-
-	for (DWORD i = 0; i < SWAPS.Length; ++i) {
-		PSWAP s = (PSWAP)&SWAPS.Buffer[i];
-		if (s->Swap && s->Original) {
-			InterlockedExchangePointer(s->Swap, s->Original);
-			printf("reverted %wZ swap\n", &s->Name);
-		}
-	}
-
+	UndoHooks();
 	printf("-- unloaded\n");
 }
 

