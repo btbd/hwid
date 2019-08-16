@@ -1,61 +1,77 @@
 #pragma once
 
 typedef struct _HOOK {
-	UNICODE_STRING Name;
-	PVOID Source, Destination, Original;
-	BYTE Length;
+        UNICODE_STRING Name;
+        PVOID Source, Destination, Original;
+        BYTE Length;
 } HOOK, *PHOOK;
 
 typedef struct _SWAP {
-	UNICODE_STRING Name;
-	PVOID *Swap;
-	PVOID Original;
+        UNICODE_STRING Name;
+        PVOID *Swap;
+        PVOID Original;
 } SWAP, *PSWAP;
 
+VOID StartHook();
+VOID EndHook();
 VOID SwapHook(PUNICODE_STRING name, PVOID swap, PVOID hook, PVOID *original);
 BYTE GetInstructionLength(BYTE table[], PBYTE instruction);
 BOOL IndirectHook(PDRIVER_OBJECT driver, PVOID dest, PVOID src, PVOID *original);
 VOID UndoHooks();
 
+// Decrements running hook count and returns with statement
+#define EndHookAndReturn(statement) { \
+        NTSTATUS _ret = statement;    \
+        EndHook();                    \
+        return _ret;                  \
+}
+
 // De-protects read-only address
-#define DeProtect(addr, length, callback, failure) { \
-	PMDL mdl = IoAllocateMdl(addr, length, 0, 0, 0); \
-	if (mdl) { \
-		MmProbeAndLockPages(mdl, KernelMode, IoModifyAccess); \
-		PVOID mapped = MmMapLockedPagesSpecifyCache(mdl, KernelMode, MmNonCached, 0, 0, HighPagePriority); \
-		if (mapped) { callback; } else { printf("! failed to lock pages ! \n"); failure; } \
-		MmUnlockPages(mdl); \
-		IoFreeMdl(mdl); \
-	} else { \
-		printf("! failed to allocate MDL !\n"); \
-		failure; \
-	} \
+#define DeProtect(addr, length, callback, failure) {                                                               \
+        PMDL mdl = IoAllocateMdl(addr, length, 0, 0, 0);                                                           \
+        if (mdl) {                                                                                                 \
+                MmProbeAndLockPages(mdl, KernelMode, IoModifyAccess);                                              \
+                PVOID mapped = MmMapLockedPagesSpecifyCache(mdl, KernelMode, MmNonCached, 0, 0, HighPagePriority); \
+                if (mapped) {                                                                                      \
+                    callback;                                                                                      \
+                    MmUnlockPages(mdl);                                                                            \
+                    IoFreeMdl(mdl);                                                                                \
+                } else {                                                                                           \
+                    printf("! failed to lock pages ! \n");                                                         \
+                    MmUnlockPages(mdl);                                                                            \
+                    IoFreeMdl(mdl);                                                                                \
+                    failure;                                                                                       \
+                }                                                                                                  \
+        } else {                                                                                                   \
+                printf("! failed to allocate MDL !\n");                                                            \
+                failure;                                                                                           \
+        }                                                                                                          \
 }
 
 // Swaps MJ device control and appends it to swap list on success
-#define SwapHookControl(driver, hook, original) { \
-	UNICODE_STRING str = RTL_CONSTANT_STRING(driver); \
-	PDRIVER_OBJECT object = 0; \
-	NTSTATUS _status = ObReferenceObjectByName(&str, OBJ_CASE_INSENSITIVE, 0, 0, *IoDriverObjectType, KernelMode, 0, &object); \
-	if (NT_SUCCESS(_status)) { \
-		SwapHook(&str, (PVOID)&object->MajorFunction[IRP_MJ_DEVICE_CONTROL], (PVOID)hook, (PVOID *)original); \
-		ObDereferenceObject(object); \
-	} else { \
-		printf("! failed to get %wZ: %p !\n", &str, _status); \
-	} \
+#define SwapHookControl(driver, hook, original) {                                                                                  \
+        UNICODE_STRING str = RTL_CONSTANT_STRING(driver);                                                                          \
+        PDRIVER_OBJECT object = 0;                                                                                                 \
+        NTSTATUS _status = ObReferenceObjectByName(&str, OBJ_CASE_INSENSITIVE, 0, 0, *IoDriverObjectType, KernelMode, 0, &object); \
+        if (NT_SUCCESS(_status)) {                                                                                                 \
+                SwapHook(&str, (PVOID)&object->MajorFunction[IRP_MJ_DEVICE_CONTROL], (PVOID)hook, (PVOID *)original);              \
+                ObDereferenceObject(object);                                                                                       \
+        } else {                                                                                                                   \
+                printf("! failed to get %wZ: %p !\n", &str, _status);                                                              \
+        }                                                                                                                          \
 }
 
 // Hooks MJ device control indirectly and appends it to hook list on success
-#define IndirectHookControl(driver, hook, original) { \
-	UNICODE_STRING str = RTL_CONSTANT_STRING(driver); \
-	PDRIVER_OBJECT object = 0; \
-	NTSTATUS _status = ObReferenceObjectByName(&str, OBJ_CASE_INSENSITIVE, 0, 0, *IoDriverObjectType, KernelMode, 0, &object); \
-	if (NT_SUCCESS(_status)) { \
-		IndirectHook(object, (PVOID)hook, (PVOID)object->MajorFunction[IRP_MJ_DEVICE_CONTROL], (PVOID *)&original); \
-		ObDereferenceObject(object); \
-	} else { \
-		printf("! failed to get %wZ: %p !\n", &str, _status); \
-	} \
+#define IndirectHookControl(driver, hook, original) {                                                                              \
+        UNICODE_STRING str = RTL_CONSTANT_STRING(driver);                                                                          \
+        PDRIVER_OBJECT object = 0;                                                                                                 \
+        NTSTATUS _status = ObReferenceObjectByName(&str, OBJ_CASE_INSENSITIVE, 0, 0, *IoDriverObjectType, KernelMode, 0, &object); \
+        if (NT_SUCCESS(_status)) {                                                                                                 \
+                IndirectHook(object, (PVOID)hook, (PVOID)object->MajorFunction[IRP_MJ_DEVICE_CONTROL], (PVOID *)&original);        \
+                ObDereferenceObject(object);                                                                                       \
+        } else {                                                                                                                   \
+                printf("! failed to get %wZ: %p !\n", &str, _status);                                                              \
+        }                                                                                                                          \
 }
 
 // Instruction tables for determining instruction length through a tree search

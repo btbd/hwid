@@ -1,14 +1,24 @@
 #include "stdafx.h"
 
+volatile LONG running_hooks = 0;
+
 struct {
 	HOOK Buffer[0xFF];
-	ULONG Length;
+	DWORD Length;
 } HOOKS = { 0 };
 
 struct {
 	SWAP Buffer[0xFF];
-	ULONG Length;
+	DWORD Length;
 } SWAPS = { 0 };
+
+VOID StartHook() {
+	InterlockedIncrement(&running_hooks);
+}
+
+VOID EndHook() {
+	InterlockedDecrement(&running_hooks);
+}
 
 VOID SwapHook(PUNICODE_STRING name, PVOID swap, PVOID hook, PVOID *original) {
 	PSWAP s = &SWAPS.Buffer[SWAPS.Length++];
@@ -103,10 +113,9 @@ VOID UndoHooks() {
 				memcpy(mapped, h->Original, h->Length);
 
 				printf("unhooked %wZ\n", &h->Name);
-			}, {});
-
-			// If there's an issue with reverting the hook while unloading, there will be a BSOD.
-			ExFreePool(h->Original);
+			}, {
+				// This would only fail if the hooked driver was unloaded
+			});
 		}
 	}
 
@@ -115,6 +124,20 @@ VOID UndoHooks() {
 		if (s->Swap && s->Original) {
 			InterlockedExchangePointer(s->Swap, s->Original);
 			printf("reverted %wZ swap\n", &s->Name);
+		}
+	}
+
+	// Lazily wait for any running routines to finish
+	do {
+		LARGE_INTEGER delay = { 0 };
+		delay.QuadPart = 100 * -10000;
+		KeDelayExecutionThread(KernelMode, 0, &delay);
+	} while (running_hooks);
+
+	for (DWORD i = 0; i < HOOKS.Length; ++i) {
+		PHOOK h = &HOOKS.Buffer[i];
+		if (h->Original) {
+			ExFreePool(h->Original);
 		}
 	}
 }

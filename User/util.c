@@ -193,7 +193,7 @@ BOOL AdjustCurrentPrivilege(LPCWSTR privilege) {
 		return FALSE;
 	}
 
-	if (GetLastError() == ERROR_NOT_ALL_ASSIGNED) {
+	if (ERROR_NOT_ALL_ASSIGNED == GetLastError()) {
 		printf("Token failed to acquire privilege\n");
 		CloseHandle(token);
 		return FALSE;

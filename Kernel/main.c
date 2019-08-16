@@ -49,6 +49,8 @@ NTSTATUS PartLayoutIoc(PDEVICE_OBJECT device, PIRP irp, PVOID context) {
 }
 
 NTSTATUS PartControl(PDEVICE_OBJECT device, PIRP irp) {
+	StartHook();
+
 	PIO_STACK_LOCATION ioc = IoGetCurrentIrpStackLocation(irp);
 	switch (ioc->Parameters.DeviceIoControl.IoControlCode) {
 		case IOCTL_DISK_GET_PARTITION_INFO_EX:
@@ -59,7 +61,7 @@ NTSTATUS PartControl(PDEVICE_OBJECT device, PIRP irp) {
 			break;
 	}
 
-	return PartControlOriginal(device, irp);
+	EndHookAndReturn(PartControlOriginal(device, irp));
 }
 
 NTSTATUS StorageQueryIoc(PDEVICE_OBJECT device, PIRP irp, PVOID context) {
@@ -130,6 +132,8 @@ NTSTATUS SmartDataIoc(PDEVICE_OBJECT device, PIRP irp, PVOID context) {
 }
 
 NTSTATUS DiskControl(PDEVICE_OBJECT device, PIRP irp) {
+	StartHook();
+
 	PIO_STACK_LOCATION ioc = IoGetCurrentIrpStackLocation(irp);
 	switch (ioc->Parameters.DeviceIoControl.IoControlCode) {
 		case IOCTL_STORAGE_QUERY_PROPERTY:
@@ -145,7 +149,7 @@ NTSTATUS DiskControl(PDEVICE_OBJECT device, PIRP irp) {
 			break;
 	}
 
-	return DiskControlOriginal(device, irp);
+	EndHookAndReturn(DiskControlOriginal(device, irp));
 }
 
 VOID SpoofRaidUnits(RU_REGISTER_INTERFACES RaidUnitRegisterInterfaces, BYTE RaidUnitExtension_SerialNumber_offset) {
@@ -364,6 +368,8 @@ NTSTATUS MountUniqueIoc(PDEVICE_OBJECT device, PIRP irp, PVOID context) {
 }
 
 NTSTATUS MountControl(PDEVICE_OBJECT device, PIRP irp) {
+	StartHook();
+
 	PIO_STACK_LOCATION ioc = IoGetCurrentIrpStackLocation(irp);
 	switch (ioc->Parameters.DeviceIoControl.IoControlCode) {
 		case IOCTL_MOUNTMGR_QUERY_POINTS:
@@ -374,7 +380,7 @@ NTSTATUS MountControl(PDEVICE_OBJECT device, PIRP irp) {
 			break;
 	}
 
-	return MountControlOriginal(device, irp);
+	EndHookAndReturn(MountControlOriginal(device, irp));
 }
 
 // Volume serial is spoofed from usermode
@@ -403,6 +409,8 @@ NTSTATUS NICIoc(PDEVICE_OBJECT device, PIRP irp, PVOID context) {
 }
 
 NTSTATUS NICControl(PDEVICE_OBJECT device, PIRP irp) {
+	StartHook();
+
 	for (DWORD i = 0; i < NICs.Length; ++i) {
 		PNIC_DRIVER driver = &NICs.Drivers[i];
 
@@ -423,14 +431,16 @@ NTSTATUS NICControl(PDEVICE_OBJECT device, PIRP irp) {
 				}
 			}
 
-			return driver->Original(device, irp);
+			EndHookAndReturn(driver->Original(device, irp));
 		}
 	}
 
-	return STATUS_SUCCESS;
+	EndHookAndReturn(STATUS_SUCCESS);
 }
 
 NTSTATUS NsiControl(PDEVICE_OBJECT device, PIRP irp) {
+	StartHook();
+
 	PIO_STACK_LOCATION ioc = IoGetCurrentIrpStackLocation(irp);
 	switch (ioc->Parameters.DeviceIoControl.IoControlCode) {
 		case IOCTL_NSI_PROXY_ARP: {
@@ -444,11 +454,11 @@ NTSTATUS NsiControl(PDEVICE_OBJECT device, PIRP irp) {
 				printf("handled ARP table\n");
 			}
 
-			return ret;
+			EndHookAndReturn(ret);
 		}
 	}
 
-	return NsiControlOriginal(device, irp);
+	EndHookAndReturn(NsiControlOriginal(device, irp));
 }
 
 VOID SpoofNIC() {
@@ -568,6 +578,8 @@ void SpoofSMBIOS() {
 
 /**** GPU ****/
 NTSTATUS GpuControl(PDEVICE_OBJECT device, PIRP irp) {
+	StartHook();
+	
 	PIO_STACK_LOCATION ioc = IoGetCurrentIrpStackLocation(irp);
 	switch (ioc->Parameters.DeviceIoControl.IoControlCode) {
 		case IOCTL_NVIDIA_SMIL: {
@@ -590,11 +602,11 @@ NTSTATUS GpuControl(PDEVICE_OBJECT device, PIRP irp) {
 				}
 			}
 
-			return ret;
+			EndHookAndReturn(ret);
 		}
 	}
 
-	return GpuControlOriginal(device, irp);
+	EndHookAndReturn(GpuControlOriginal(device, irp));
 }
 
 VOID SpoofGPU() {

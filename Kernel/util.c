@@ -116,7 +116,7 @@ PVOID FindPatternImage(PCHAR base, PCHAR pattern, PCHAR mask) {
 	PIMAGE_SECTION_HEADER sections = IMAGE_FIRST_SECTION(headers);
 	for (DWORD i = 0; i < headers->FileHeader.NumberOfSections; ++i) {
 		PIMAGE_SECTION_HEADER section = &sections[i];
-		if ('EGAP' == *(PINT)section->Name || memcmp(section->Name, ".text", 5) == 0) {
+		if ('EGAP' == *(PINT)section->Name || 0 == memcmp(section->Name, ".text", 5)) {
 			match = FindPattern(base + section->VirtualAddress, section->Misc.VirtualSize, pattern, mask);
 			if (match) {
 				break;
