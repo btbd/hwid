@@ -462,7 +462,7 @@ VOID SpoofNIC() {
 
 	PNDIS_FILTER_BLOCK ndisGlobalFilterList = FindPatternImage(base, "\x40\x8A\xF0\x48\x8B\x05", "xxxxxx");
 	if (ndisGlobalFilterList) {
-		PDWORD ndisFilter_IfBlock = FindPatternImage(base, "\x48\x85\xFF\x0F\x84\x00\x00\x00\x00\x4C\x8B", "xxxxx????xx");
+		PDWORD ndisFilter_IfBlock = FindPatternImage(base, "\x48\x85\x00\x0F\x84\x00\x00\x00\x00\x00\x8B\x00\x00\x00\x00\x00\x33", "xx?xx?????x???xxx");
 		if (ndisFilter_IfBlock) {
 			DWORD ndisFilter_IfBlock_offset = *(PDWORD)((PBYTE)ndisFilter_IfBlock + 12);
 
