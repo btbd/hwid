@@ -34,6 +34,7 @@ VOID UndoHooks();
                 PVOID mapped = MmMapLockedPagesSpecifyCache(mdl, KernelMode, MmNonCached, 0, 0, HighPagePriority); \
                 if (mapped) {                                                                                      \
                     callback;                                                                                      \
+                    MmUnmapLockedPages(mapped, mdl);                                                               \
                     MmUnlockPages(mdl);                                                                            \
                     IoFreeMdl(mdl);                                                                                \
                 } else {                                                                                           \
