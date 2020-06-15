@@ -144,6 +144,8 @@ PVOID GetBaseAddress(PCHAR name, PULONG out_size) {
 	}
 
 	if (!NT_SUCCESS(status = ZwQuerySystemInformation(SystemModuleInformation, modules, size, 0))) {
+		ExFreePool(modules);
+		
 		printf("! ZwQuerySystemInformation failed: %p !\n", status);
 		return addr;
 	}
