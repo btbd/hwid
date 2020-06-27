@@ -12,4 +12,8 @@ There may be some functionality on lower Windows versions, but it was not tested
 - NVME specific IOCTLs are not handled.
 - When using a VPN, load the driver after the VPN's TAP driver is loaded.
 
-Feel free to contribute.
+## Archived
+
+This project has been archived as it holds examples of handling common queries, but much of the code was hastily written.
+
+No future support will be given.
